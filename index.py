@@ -1,39 +1,23 @@
 import argparse
-import base64
-import getpass
-import os
-import random
-import string
 
-import gnupg
-import rsa
-from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from algos.aes import AES
+from algos.fernet import FERNET
+from algos.gpg import GPG
+from algos.rsa import RSA
 
 parser = argparse.ArgumentParser()
-# Commands
-# - encrypt
-# - decrypt
-# - generate
-# - help
-# Options
-# - algorithm
-# - verbose
-# Parameters
-# - input
-# - output
-# - key
 
+# Add mutually exclusive groups for commands
 commands = parser.add_mutually_exclusive_group(required=True)
 commands.add_argument('-encrypt', '-en', action='store_true', help='Encrypt the given input')
 commands.add_argument('-decrypt', '-de', action='store_true', help='Decrypt the given input')
 commands.add_argument('-generate', '-gen', action='store_true', help='Generate a key for the given algorithm')
 
-
+# Add algorithm options and verbose option
 parser.add_argument('-algorithm', '-alg', action='store', help='Define the algorithm used', default='fernet', choices=['fernet', 'rsa', 'aes', 'gpg'])
 parser.add_argument('-verbose', '-v', action='store_true', help='Gain additional information')
 
+# Add mutually exclusive groups for input and output
 inputOption = parser.add_mutually_exclusive_group(required=False)
 inputOption.add_argument('--input', '--i', action='store', help='An input string')
 inputOption.add_argument('--inputFile', '--if', action='store', help='Path to an input file')
@@ -42,464 +26,58 @@ outputOption = parser.add_mutually_exclusive_group(required=False)
 outputOption.add_argument('--output', '--o', action='store_true', help='Output to console')
 outputOption.add_argument('--outputFile', '--of', action='store', help='Path to an output file')
 
+# Add key, passphrase and keyRing options
 parser.add_argument('--key', '--k', action='store', help='The key file to use/save as (ignoring file extensions)', default='key')
 parser.add_argument('--passphrase', '--p', action='store', help='The passphrase to use (if required), if not provided you will be prompted for one.')
 parser.add_argument('--keyRing', '--kr', action='store', help='Path to the key ring to use (for GPG only)')
 
+# Parse arguments
 args = parser.parse_args()
 
-# Verbose log
-def verboseLog(message):
-    if (args.verbose):
-        print("(VERBOSE) " + message)
+class Main: 
 
-# Generate key
-if (args.generate):
-    print("Generating key for " + args.algorithm + " algorithm")
-    # Fernet
-    if (args.algorithm == 'fernet'):
-        key = Fernet.generate_key()
+    def __init__(self):
+        self.FERNET = FERNET(self)
+        self.RSA = RSA(self)
+        self.AES = AES(self)
+        self.GPG = GPG(self)
 
-        verboseLog("Key: \n" + key.decode('utf-8'))
-
-        with open(args.key + '.key', 'wb') as key_file:
-            key_file.write(key)
-            print("Key saved to " + args.key)
-    # RSA
-    elif (args.algorithm == 'rsa'):
-        (pubkey, privkey) = rsa.newkeys(512)
-
-        verboseLog("Public key: \n" + pubkey.save_pkcs1().decode('utf-8'))
-        verboseLog("Private key: \n" + privkey.save_pkcs1().decode('utf-8'))
-
-        with open(args.key + '.private', 'wb') as priv_file:
-            priv_file.write(privkey.save_pkcs1())
-            print("Private key saved to " + args.key + '.private')
-
-        with open(args.key + '.public', 'wb') as pub_file:
-            pub_file.write(pubkey.save_pkcs1())
-            print("Public key saved to " + args.key + '.public')
-    # AES
-    elif (args.algorithm == 'aes'):
-
-        if (args.passphrase):
-            password = args.passphrase.encode('utf-8')
-        else:
-            print("RSA key generation requires a passphrase. This passphrase is not needed to decrypt or encrypt, but is required to generate the key.")
-            randomize = input("Randomize passphrase? (y/n): ")
-            if (randomize == 'y'):
-                characters = string.ascii_letters + string.digits + string.punctuation
-                password = ''.join(random.choice(characters) for i in range(8)).encode('utf-8')
-            else:
-                password = getpass.getpass("Key: ").encode('utf-8')
-
-        salt = os.urandom(16)
-
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=100000,
-        )
-
-        key = base64.urlsafe_b64encode(kdf.derive(password))
-
-        verboseLog("Random Key: \n" + key.decode('utf-8'))
-
-        with open(args.key + '.key', 'wb') as key_file:
-            key_file.write(key)
-            print("Key saved to " + args.key)
-    # GPG
-    elif (args.algorithm == 'gpg'):
-        try:
-            if (args.keyRing):
-                gpg = gnupg.GPG(gnupghome=args.keyring)
-            else:
-                gpg = gnupg.GPG()
-        except:
-            print("GPG not found, please install GPG and try again. (https://gnupg.org/download/)")
-            exit(1)
+    def verboseLog(self, message):
+        if (args.verbose):
+            print("(VERBOSE) " + message)
+    
+    def run(self, args):
+        if (args.generate):
+            if (args.algorithm == 'fernet'):
+                self.FERNET.generate_key(args)
+            elif (args.algorithm == 'rsa'):
+                self.RSA.generate_key(args)
+            elif (args.algorithm == 'aes'):
+                self.AES.generate_key(args)
+            elif (args.algorithm == 'gpg'):
+                self.GPG.generate_key(args)
         
-        keys = gpg.list_keys()
-        if (keys):
-            for key in keys:
-                if (key['uids'][0] == f'Autogenerated Key <%s>' % args.key):
-                    print("A key with this ID already exists, please use a different ID or delete the existing key.")
-                    exit(1)
-        
-        if (args.passphrase):
-            password = args.passphrase.encode('utf-8')
-        else:
-            randomize = input("Randomize passphrase? (y/n): ")
-            if (randomize == 'y'):
-                characters = string.ascii_letters + string.digits + string.punctuation
-                password = ''.join(random.choice(characters) for i in range(16))
-                print("Passphrase: " + password + "\n(Please remember this passphrase, it will not be shown again)")
-            else:
-                password = getpass.getpass("Key: ")
+        elif (args.encrypt):
+            if (args.algorithm == 'fernet'):
+                self.FERNET.encrypt(args)
+            elif (args.algorithm == 'rsa'):
+                self.RSA.encrypt(args)
+            elif (args.algorithm == 'aes'):
+                self.AES.encrypt(args)
+            elif (args.algorithm == 'gpg'):
+                self.GPG.encrypt(args)
 
-        input_data = gpg.gen_key_input(
-            name_email=args.key,
-            passphrase=password,
-            key_type='RSA',
-            key_length=4096,
-        )
-        
-        print("Generating key...")
-        key = gpg.gen_key(input_data)
-        print("Key generated with ID " + args.key)
+        elif (args.decrypt):
+            if (args.algorithm == 'fernet'):
+                self.FERNET.decrypt(args)
+            elif (args.algorithm == 'rsa'):
+                self.RSA.decrypt(args)
+            elif (args.algorithm == 'aes'):
+                self.AES.decrypt(args)
+            elif (args.algorithm == 'gpg'):
+                self.GPG.decrypt(args)
 
-
-
-if (args.encrypt):
-    if (args.algorithm == 'fernet'):
-        # Check if key exists
-        if(not os.path.isfile(args.key + '.key')):
-            print("Key file not found")
-            exit(1)
-
-        # Read key
-        with open(args.key + '.key', 'rb') as key_file:
-            key = key_file.read()
-
-            # Load ferent with key
-            fernet = Fernet(key)
-            if (args.input):
-                print("Encrypting " + args.input + " with " + args.algorithm + " algorithm")
-                encrypted = fernet.encrypt(args.input.encode('utf-8'))
-                verboseLog("Encrypted: \n" + encrypted.decode('utf-8'))
-                if (args.outputFile):
-                    with open(args.outputFile, 'wb') as output_file:
-                        output_file.write(encrypted)
-                        print("Encrypted saved to " + args.outputFile)
-                else:
-                    print(encrypted.decode('utf-8'))
-            elif (args.inputFile):
-
-                # Check if input file exists
-                if (not os.path.isfile(args.inputFile)):
-                    print("Input file not found")
-                    exit(1)
-                print("Encrypting " + args.inputFile + " with " + args.algorithm + " algorithm")
-
-                # Read input file
-                with open(args.inputFile, 'rb') as input_file:
-                    input = input_file.read()
-                    encrypted = fernet.encrypt(input)
-                    verboseLog("Encrypted: \n" + encrypted.decode('utf-8'))
-                    if (args.outputFile):
-                        with open(args.outputFile, 'wb') as output_file:
-                            output_file.write(encrypted)
-                            print("Encrypted saved to " + args.outputFile)
-                    else:
-                        print(encrypted.decode('utf-8'))
-    elif (args.algorithm == 'rsa'):
-        # Check if key exists
-        if (not os.path.isfile(args.key + '.public')):
-            print("Key file not found")
-            exit(1)
-
-        # Read key
-        with open(args.key + '.public', 'rb') as key_file:
-            key = key_file.read()
-
-            # Load rsa with key
-            pubkey = rsa.PublicKey.load_pkcs1(key)
-            if (args.input):
-                print("Encrypting " + args.input + " with " + args.algorithm + " algorithm")
-                encrypted = rsa.encrypt(args.input.encode('utf-8'), pubkey)
-                verboseLog("Encrypted: \n" + str(encrypted, errors='ignore'))
-                if (args.outputFile):
-                    with open(args.outputFile, 'wb') as output_file:
-                        output_file.write(encrypted)
-                        print("Encrypted saved to " + args.outputFile)
-                else:
-                    print('RSA stores data outside of the normal UTF-8 encodable range, so it cannot be printed to the console. Please use the --outputFile option to save the encrypted data to a file.')
-            elif (args.inputFile):
-
-                # Check if input file exists
-                if (not os.path.isfile(args.inputFile)):
-                    print("Input file not found")
-                    exit(1)
-                print("Encrypting " + args.inputFile + " with " + args.algorithm + " algorithm")
-
-                # Read input file
-                with open(args.inputFile, 'rb') as input_file:
-                    input = input_file.read()
-                    encrypted = rsa.encrypt(input, pubkey)
-                    verboseLog("Encrypted: \n" + input.decode('utf-8'))
-                    if (args.outputFile):
-                        with open(args.outputFile, 'wb') as output_file:
-                            output_file.write(encrypted)
-                            print("Encrypted saved to " + args.outputFile)
-                    else:
-                        print(encrypted.decode('utf-8'))
-    elif (args.algorithm == 'aes'):
-        # Check if key exists
-        if (not os.path.isfile(args.key + '.key')):
-            print("Key file not found")
-            exit(1)
-
-        # Read key
-        with open(args.key + '.key', 'rb') as key_file:
-            key = key_file.read()
-
-            # Load aes with key
-            fernet = Fernet(key)
-            if (args.input):
-                print("Encrypting " + args.input + " with " + args.algorithm + " algorithm")
-                encrypted = fernet.encrypt(args.input.encode('utf-8'))
-                verboseLog("Encrypted: \n" + encrypted.decode('utf-8'))
-                if (args.outputFile):
-                    with open(args.outputFile, 'wb') as output_file:
-                        output_file.write(encrypted)
-                        print("Encrypted saved to " + args.outputFile)
-                else:
-                    print(encrypted.decode('utf-8'))
-            elif (args.inputFile):
-
-                # Check if input file exists
-                if (not os.path.isfile(args.inputFile)):
-                    print("Input file not found")
-                    exit(1)
-                print("Encrypting " + args.inputFile + " with " + args.algorithm + " algorithm")
-
-                # Read input file
-                with open(args.inputFile, 'rb') as input_file:
-                    input = input_file.read()
-                    encrypted = fernet.encrypt(input)
-                    verboseLog("Encrypted: \n" + encrypted.decode('utf-8'))
-                    if (args.outputFile):
-                        with open(args.outputFile, 'wb') as output_file:
-                            output_file.write(encrypted)
-                            print("Encrypted saved to " + args.outputFile)
-                    else:
-                        print(encrypted.decode('utf-8'))
-    elif (args.algorithm == 'gpg'):
-        if (args.input):
-            print("Encrypting " + args.input + " with " + args.algorithm + " algorithm")
-            try:
-                if (args.keyRing):
-                    gpg = gnupg.GPG(gnupghome=args.keyring)
-                else:
-                    gpg = gnupg.GPG()
-            except:
-                print("GPG not found, please install GPG and try again. (https://gnupg.org/download/)")
-                exit(1)
-            if(args.outputFile):
-                status = gpg.encrypt(args.input, [args.key], output=args.outputFile)
-                print("Encrypted saved to " + args.outputFile)
-                verboseLog("Ok?: " + str(status.ok))
-                verboseLog("Status: " + str(status.status))
-            else:
-                status = gpg.encrypt(args.input, [args.key])
-                print(status.data)
-                verboseLog("Ok?: " + str(status.ok))
-                verboseLog("Status: " + str(status.status))
-            if (not status.ok):
-                print("Error: " + status.status)
-                verboseLog("Status: " + str(status.stderr))
-        elif (args.inputFile):
-            print("Encrypting " + args.inputFile + " with " + args.algorithm + " algorithm")
-            try:
-                gpg = gnupg.GPG()
-            except:
-                print("GPG not found, please install GPG and try again. (https://gnupg.org/download/)")
-                exit(1)
-            if(args.outputFile):
-                with open (args.inputFile, "rb") as f:
-                    status = gpg.encrypt_file(f, [args.key], output=args.outputFile)
-                    print("Encrypted saved to " + args.outputFile)
-                    verboseLog("Ok?: " + str(status.ok))
-                    verboseLog("Status: " + str(status.status))
-            else:
-                with open (args.inputFile, "rb") as f:
-                    status = gpg.encrypt_file(f, [args.key])
-                    print(status.data)
-                    verboseLog("Ok?: " + str(status.ok))
-                    verboseLog("Status: " + str(status.status))
-            if (not status.ok):
-                print("Error: " + status.status)
-                verboseLog("Status: " + str(status.stderr))
-
-if (args.decrypt):
-    if (args.algorithm == 'fernet'):
-        # Check if key exists
-        if (not os.path.isfile(args.key + '.key')):
-            print("Key file not found")
-            exit(1)
-        
-        # Read key
-        with open(args.key + '.key', 'rb') as key_file:
-            key = key_file.read()
-
-            # Load ferent with key
-            fernet = Fernet(key)
-            if (args.input):
-                print("Decrypting " + args.input + " with " + args.algorithm + " algorithm")
-                # Decrypt input
-                decrypted = fernet.decrypt(args.input.encode('utf-8'))
-                verboseLog("Decrypted: \n" + decrypted.decode('utf-8'))
-                # Save decrypted to file
-                if (args.outputFile):
-                    with open(args.outputFile, 'wb') as output_file:
-                        output_file.write(decrypted)
-                        print("Decrypted saved to " + args.outputFile)
-                # Print decrypted
-                else:
-                    print(decrypted.decode('utf-8'))
-            elif (args.inputFile):
-                # Check if input file exists
-                if (not os.path.isfile(args.inputFile)):
-                    print("Input file not found")
-                    exit(1)
-                print("Decrypting " + args.inputFile + " with " + args.algorithm + " algorithm")
-
-                # Read input file
-                with open(args.inputFile, 'rb') as input_file:
-                    input = input_file.read()
-                    # Decrypt input
-                    decrypted = fernet.decrypt(input)
-                    verboseLog("Decrypted: \n" + decrypted.decode('utf-8'))
-                    # Save decrypted to file
-                    if (args.outputFile):
-                        with open(args.outputFile, 'wb') as output_file:
-                            output_file.write(decrypted)
-                            print("Decrypted saved to " + args.outputFile)
-                    # Print decrypted
-                    else:
-                        print(decrypted.decode('utf-8'))
-    elif (args.algorithm == 'rsa'):
-        # Check if key exists
-        if (not os.path.isfile(args.key + '.private')):
-            print("Key file not found")
-            exit(1)
-
-        # Read key
-        with open(args.key + '.private', 'rb') as key_file:
-            key = key_file.read()
-
-            # Load rsa with key
-            privkey = rsa.PrivateKey.load_pkcs1(key)
-            if (args.input):
-                print ("String decryption not supported for RSA. Please use the --if option to specify an input file.")
-                exit(1)
-            elif (args.inputFile):
-                # Check if input file exists
-                if (not os.path.isfile(args.inputFile)):
-                    print("Input file not found")
-                    exit(1)
-                print("Decrypting " + args.inputFile + " with " + args.algorithm + " algorithm")
-
-                # Read input file
-                with open(args.inputFile, 'rb') as input_file:
-                    input = input_file.read()
-                    # Decrypt input
-                    decrypted = rsa.decrypt(input, privkey)
-                    verboseLog("Decrypted: \n" + decrypted.decode('utf-8'))
-                    # Save decrypted to file
-                    if (args.outputFile):
-                        with open(args.outputFile, 'wb') as output_file:
-                            output_file.write(decrypted)
-                            print("Decrypted saved to " + args.outputFile)
-                    # Print decrypted
-                    else:
-                        print(decrypted.decode('utf-8'))
-    elif (args.algorithm == 'aes'):
-        # Check if key exists
-        if (not os.path.isfile(args.key + '.key')):
-            print("Key file not found")
-            exit(1)
-
-        # Read key
-        with open(args.key + '.key', 'rb') as key_file:
-            key = key_file.read()
-
-            # Load aes with key
-            fernet = Fernet(key)
-            if (args.input):
-                print("Decrypting " + args.input + " with " + args.algorithm + " algorithm")
-                # Decrypt input
-                decrypted = fernet.decrypt(args.input.encode('utf-8'))
-                verboseLog("Decrypted: \n" + decrypted.decode('utf-8'))
-                # Save decrypted to file
-                if (args.outputFile):
-                    with open(args.outputFile, 'wb') as output_file:
-                        output_file.write(decrypted)
-                        print("Decrypted saved to " + args.outputFile)
-                # Print decrypted
-                else:
-                    print(decrypted.decode('utf-8'))
-            elif (args.inputFile):
-                # Check if input file exists
-                if (not os.path.isfile(args.inputFile)):
-                    print("Input file not found")
-                    exit(1)
-                print("Decrypting " + args.inputFile + " with " + args.algorithm + " algorithm")
-
-                # Read input file
-                with open(args.inputFile, 'rb') as input_file:
-                    input = input_file.read()
-                    # Decrypt input
-                    decrypted = fernet.decrypt(input)
-                    verboseLog("Decrypted: \n" + decrypted.decode('utf-8'))
-                    # Save decrypted to file
-                    if (args.outputFile):
-                        with open(args.outputFile, 'wb') as output_file:
-                            output_file.write(decrypted)
-                            print("Decrypted saved to " + args.outputFile)
-                    # Print decrypted
-                    else:
-                        print(decrypted.decode('utf-8'))
-    elif (args.algorithm == 'gpg'):
-        print("GPG relies on a GNUP agent, most of these agents cache the passphrase for a certain amount of time. So once you decrypt a file even an incorrect passphrase will decrypt the file for a while.")
-        if (args.passphrase):
-            passphrase = args.passphrase.encode('utf-8')
-        else:
-            passphrase = getpass.getpass("Enter passphrase: ")
-        if (args.input):
-            print("Decrypting " + args.input + " with " + args.algorithm + " algorithm")
-            try:
-                if (args.keyRing):
-                    gpg = gnupg.GPG(gnupghome=args.keyring)
-                else:
-                    gpg = gnupg.GPG()
-            except:
-                print("GPG not found, please install GPG and try again. (https://gnupg.org/download/)")
-                exit(1)
-            if(args.outputFile):
-                status = gpg.decrypt(args.input, passphrase=passphrase, output=args.outputFile)
-                print("Decrypting saved to " + args.outputFile)
-                verboseLog("Ok?: " + str(status.ok))
-                verboseLog("Status: " + str(status.status))
-            else:
-                status = gpg.decrypt(args.input, passphrase=passphrase)
-                print(status.data)
-                verboseLog("Ok?: " + str(status.ok))
-            verboseLog("Status: " + str(status.status))
-            if (not status.ok):
-                print("Error: " + status.status)
-                verboseLog("Status: " + str(status.stderr))
-        elif (args.inputFile):
-            print("Decrypting " + args.inputFile + " with " + args.algorithm + " algorithm")
-            try:
-                gpg = gnupg.GPG()
-            except:
-                print("GPG not found, please install GPG and try again. (https://gnupg.org/download/)")
-                exit(1)
-            if(args.outputFile):
-                with open (args.inputFile, "rb") as f:
-                    status = gpg.decrypt_file(f, passphrase=passphrase, output=args.outputFile)
-                    print("Decrypting saved to " + args.outputFile)
-                    verboseLog("Ok?: " + str(status.ok))
-                    verboseLog("Status: " + str(status.status))
-            else:
-                with open (args.inputFile, "rb") as f:
-                    status = gpg.decrypt_file(f, passphrase=passphrase)
-                    print(status.data)
-                    verboseLog("Ok?: " + str(status.ok))
-                    verboseLog("Status: " + str(status.status))
-            if (not status.ok):
-                print("Error: " + status.status)
-                verboseLog("Status: " + str(status.stderr))
-
+# Run the program
+if __name__ == '__main__':
+    main = Main()
+    main.run(args)
