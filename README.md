@@ -2,6 +2,8 @@
 
 A simple CLI tool for encrypting and decrypting files and strings using python cryptography.
 
+# This tool has been created for a university assignment, it is not intended for production use. It will not be maintained or updated in anyway after my assignment is complete.
+
 ## Installation
 
 ### Requirements
