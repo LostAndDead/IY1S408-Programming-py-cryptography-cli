@@ -83,10 +83,10 @@ $ py .\index.py -de -algo 'fernet' --inputFile '.\io\fernetOut.txt' --outputFile
 
 ### Encrypt a string using RSA
 ```console
-$ py .\index.py -en -algo 'rsa' --input 'super secret message' --output --key '.\keys\rsaKey'
+$ py .\index.py -en -algo 'rsa' --input 'super secret message' --outputFile '.\io\aesOut.txt' --key '.\keys\rsaKey'
 ```
 
 ### Decrypt a string using AES
 ```console
-$ py .\index.py -de -v -algo 'aes' --inputFile '.\io\aesOut.txt' --outputFile '.\io\aesDecrypt.txt' --key '.\keys\aesKey'
+$ py .\index.py -de -algo 'aes' --inputFile '.\io\aesOut.txt' --outputFile '.\io\aesDecrypt.txt' --key '.\keys\aesKey'
 ```
