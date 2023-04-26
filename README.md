@@ -33,17 +33,17 @@ options:
   -algorithm {fernet,rsa,aes,gpg}, -alg {fernet,rsa,aes,gpg}
                         Define the algorithm used
   -verbose, -v          Gain additional information
-  --input INPUT, --i INPUT
+  --input INPUT, -i INPUT
                         An input string
-  --inputFile INPUTFILE, --if INPUTFILE
+  --inputFile INPUTFILE, -if INPUTFILE
                         Path to an input file
-  --output, --o         Output to console
-  --outputFile OUTPUTFILE, --of OUTPUTFILE
+  --output, -o         Output to console
+  --outputFile OUTPUTFILE, -of OUTPUTFILE
                         Path to an output file
-  --key KEY, --k KEY    The key file to use/save as (ignoring file extensions)
-  --passphrase PASSPHRASE, --p PASSPHRASE
+  --key KEY, -k KEY    The key file to use/save as (ignoring file extensions)
+  --passphrase PASSPHRASE, -p PASSPHRASE
                         The passphrase to use (if required), if not provided you will be prompted for one.
-  --keyRing KEYRING, --kr KEYRING
+  --keyRing KEYRING, -kr KEYRING
                         Path to the key ring to use (for GPG only)
 ```
 

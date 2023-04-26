@@ -77,7 +77,7 @@ class RSA:
             # Load rsa with key
             privkey = rsa.PrivateKey.load_pkcs1(key)
             if (args.input):
-                print ("String decryption not supported for RSA. Please use the --if option to specify an input file.")
+                print ("String decryption not supported for RSA. Please use the --inputFile option to specify an input file.")
                 exit(1)
             elif (args.inputFile):
                 # Check if input file exists

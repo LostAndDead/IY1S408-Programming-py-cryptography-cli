@@ -19,17 +19,17 @@ parser.add_argument('-verbose', '-v', action='store_true', help='Gain additional
 
 # Add mutually exclusive groups for input and output
 inputOption = parser.add_mutually_exclusive_group(required=False)
-inputOption.add_argument('--input', '--i', action='store', help='An input string')
+inputOption.add_argument('--input', '-i', ction='store', help='An input string')
 inputOption.add_argument('--inputFile', '--if', action='store', help='Path to an input file')
 
 outputOption = parser.add_mutually_exclusive_group(required=False)
-outputOption.add_argument('--output', '--o', action='store_true', help='Output to console')
-outputOption.add_argument('--outputFile', '--of', action='store', help='Path to an output file')
+outputOption.add_argument('--output', '-o', action='store_true', help='Output to console')
+outputOption.add_argument('--outputFile', '-of', action='store', help='Path to an output file')
 
 # Add key, passphrase and keyRing options
-parser.add_argument('--key', '--k', action='store', help='The key file to use/save as (ignoring file extensions)', default='key')
-parser.add_argument('--passphrase', '--p', action='store', help='The passphrase to use (if required), if not provided you will be prompted for one.')
-parser.add_argument('--keyRing', '--kr', action='store', help='Path to the key ring to use (for GPG only)')
+parser.add_argument('--key', '-k', action='store', help='The key file to use/save as (ignoring file extensions)', default='key')
+parser.add_argument('--passphrase', '-p', action='store', help='The passphrase to use (if required), if not provided you will be prompted for one.')
+parser.add_argument('--keyRing', '-kr', action='store', help='Path to the key ring to use (for GPG only)')
 
 # Parse arguments
 args = parser.parse_args()
