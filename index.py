@@ -20,7 +20,7 @@ parser.add_argument('-verbose', '-v', action='store_true', help='Gain additional
 # Add mutually exclusive groups for input and output
 inputOption = parser.add_mutually_exclusive_group(required=False)
 inputOption.add_argument('--input', '-i', action='store', help='An input string')
-inputOption.add_argument('--inputFile', '--if', action='store', help='Path to an input file')
+inputOption.add_argument('--inputFile', '-if', action='store', help='Path to an input file')
 
 outputOption = parser.add_mutually_exclusive_group(required=False)
 outputOption.add_argument('--output', '-o', action='store_true', help='Output to console')

@@ -64,7 +64,7 @@ class FERNET:
 
     def decrypt(self, args):
         # Check if key exists
-        if(not os.path.isfile(args.key + '.key')):
+        if (not os.path.isfile(args.key + '.key')):
             print("Key file not found")
             exit(1)
 
@@ -75,31 +75,36 @@ class FERNET:
             # Load ferent with key
             fernet = Fernet(key)
             if (args.input):
-                print("Encrypting " + args.input + " with " + args.algorithm + " algorithm")
-                encrypted = fernet.encrypt(args.input.encode('utf-8'))
-                self.main.verboseLog("Encrypted: \n" + encrypted.decode('utf-8'))
+                print("Decrypting " + args.input + " with " + args.algorithm + " algorithm")
+                # Decrypt input
+                decrypted = fernet.decrypt(args.input.encode('utf-8'))
+                self.main.verboseLog("Decrypted: \n" + decrypted.decode('utf-8'))
+                # Save decrypted to file
                 if (args.outputFile):
                     with open(args.outputFile, 'wb') as output_file:
-                        output_file.write(encrypted)
-                        print("Encrypted saved to " + args.outputFile)
+                        output_file.write(decrypted)
+                        print("Decrypted saved to " + args.outputFile)
+                # Print decrypted
                 else:
-                    print(encrypted.decode('utf-8'))
+                    print(decrypted.decode('utf-8'))
             elif (args.inputFile):
-
                 # Check if input file exists
                 if (not os.path.isfile(args.inputFile)):
                     print("Input file not found")
                     exit(1)
-                print("Encrypting " + args.inputFile + " with " + args.algorithm + " algorithm")
+                print("Decrypting " + args.inputFile + " with " + args.algorithm + " algorithm")
 
                 # Read input file
                 with open(args.inputFile, 'rb') as input_file:
                     input = input_file.read()
-                    encrypted = fernet.encrypt(input)
-                    self.main.verboseLog("Encrypted: \n" + encrypted.decode('utf-8'))
+                    # Decrypt input
+                    decrypted = fernet.decrypt(input)
+                    self.main.verboseLog("Decrypted: \n" + decrypted.decode('utf-8'))
+                    # Save decrypted to file
                     if (args.outputFile):
                         with open(args.outputFile, 'wb') as output_file:
-                            output_file.write(encrypted)
-                            print("Encrypted saved to " + args.outputFile)
+                            output_file.write(decrypted)
+                            print("Decrypted saved to " + args.outputFile)
+                    # Print decrypted
                     else:
-                        print(encrypted.decode('utf-8'))
+                        print(decrypted.decode('utf-8'))
